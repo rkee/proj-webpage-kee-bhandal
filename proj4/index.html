@@ -1,7 +1,250 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 4 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 Mesh Editor</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2023</h1>
+<h1 align="middle">Project 4: Cloth Simulator</h1>
+<h2 align="middle">Ryan Kee & Amit Bhandal</h2>
+
+<br><br>
+
+<div>
+
+<h2 align="middle">Overview</h2>
+<p>In this project, we implemented a point-mass spring-based cloth simulator. In part 1, we setup the basic structure of the simulation which included building the point mass and spring grids, as well as the spring constraints. In this project, we only supported two initial cloth orientations (horizontal or vertical). In part two, we implemented the simulation through verlet integration. In each timestep (frame), we computed the net force acting on each point mass and used that information to update that point mass's next position. In part three, we implemented cloth to sphere and cloth to plane collisions. Then, in part four, we implemented self-collisions to allow for more realistic interactions when the cloth folds onto itself. Finally, in part five we implemented shaders using GLSL for many of the techniques we've learned previously in class such as Diffuse shading, Blinn-Phong shading, texture mapping, bump mapping, displacement mapping, and environment-mapped reflections.</p>
+
+<h2 align="middle">Part I: Masses and springs</h2>
+
+  <div align="middle">
+    <table style="width:100%">
+      <tr align="center">
+        <td>
+          <img src="images/part1/no_shear.png" align="middle" width="320px" />
+          <figcaption>No shear constraints</figcaption>
+        </td>
+        <td>
+          <img src="images/part1/only_shear.png" align="middle" width="320px" />
+          <figcaption>Only shear constraints</figcaption>
+        </td>
+        <td>
+          <img src="images/part1/all_constraints.png" align="middle" width="320px" />
+          <figcaption>All constraints</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+<h2 align="middle">Part II: Simulation via numerical integration</h2>
+
+  <p>Increasing the spring constant ks increases the stiffness of the cloth, while decreasing ks allows the cloth to become more stretchy. The density of the cloth affects how much gravitational force is exerted on the point masses because increasing the density also increases the mass of the cloth. So increasing the density of the cloth will cause the cloth to sag down more (if possible). The damping term affected how the cloth seemed to be affected by air resistance. So for higher damping terms the cloth fell a lot faster, but this can't be affect can't be properly shown through an image.</p>
+
+  <div align="middle">
+    <table style="width:100%">
+      <tr align="center">
+        <td>
+          <img src="images/part2/default.png" align="middle" width="400px" />
+          <figcaption>ks 5000 N/m (default)</figcaption>
+        </td>
+        <td>
+          <img src="images/part2/ks_100.png" align="middle" width="400px" />
+          <figcaption>ks 100</figcaption>
+        </td>
+      </tr>
+      <tr align="center">
+        <td>
+          <img src="images/part2/default.png" align="middle" width="400px" />
+          <figcaption>Density 15 g/cm^2 (default)</figcaption>
+        </td>
+        <td>
+          <img src="images/part2/density_5.png" align="middle" width="400px" />
+          <figcaption>Density 5 g/cm^2</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div align="middle">
+    <img src="images/part2/pinned4.png" align="middle" width="600px" />
+    <figcaption>scene/pinned4.json (default params)</figcaption>
+  </div>
+
+<h2 align="middle">Part III: Handling collisions with other objects</h2>
+
+  <div align="middle">
+    <table style="width:100%">
+      <tr align="center">
+        <td>
+          <img src="images/part3/sphere_ks_5000_default.png" align="middle" width="320px" />
+          <figcaption>ks = 5000 (default)</figcaption>
+        </td>
+        <td>
+          <img src="images/part3/sphere_ks_500.png" align="middle" width="320px" />
+          <figcaption>ks = 500</figcaption>
+        </td>
+        <td>
+          <img src="images/part3/sphere_ks_50000.png" align="middle" width="320px" />
+          <figcaption>ks = 50000</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <p>When the spring constant ks is low, the springs become "looser" or less stiff. As such, the cloth when draped over a large sphere is able to hug the shape of the sphere more tightly since each point mass is less constrained by neighboring point masses and drapes down over the sphere more freely. This can be seen in the second image with the low spring constant of ks = 500. Contrastly, in the third image the spring constant is high which corresponds to a stiffer cloth material. So the cloth is not able to hug the sphere shape as much.</p>
+
+  <div align="middle">
+    <img src="images/part3/plane.png" align="middle" width="600px" />
+    <figcaption>scene/plane.json (default params)</figcaption>
+  </div>
+
+<h2 align="middle">Part IV: Handling self-collisions</h2>
+
+  <div align="middle">
+    <table style="width:100%">
+      <tr align="center">
+        <td>
+          <img src="images/part4/early.png" align="middle" width="320px" />
+          <figcaption>Early state</figcaption>
+        </td>
+        <td>
+          <img src="images/part4/initial_self_collide.png" align="middle" width="320px" />
+          <figcaption>Initial self-collision state</figcaption>
+        </td>
+        <td>
+          <img src="images/part4/rest.png" align="middle" width="320px" />
+          <figcaption>Restful state</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <p>Since the volume of the cloth is constant, increasing the density increases the mass of the cloth. This in turn increases the gravitational forces on the point masses. As you can see below, in its final resting state the cloth hugs closer to the plane/ground for the higher density cloth.</p>
+  <div align="middle">
+    <table style="width:100%">
+      <tr align="center">
+        <td>
+          <img src="images/part4/density15.png" align="middle" width="400px" />
+          <figcaption>Density 15 g/cm^2 (default)</figcaption>
+        </td>
+        <td>
+          <img src="images/part4/density100.png" align="middle" width="400px" />
+          <figcaption>Density 100 g/cm^2</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <p>As we discussed earlier, increasing the spring constant increases the stiffness of the cloth. As such, the cloth at ks = 5000 has a lot more "micro-folds" compared to the cloth with ks = 100000. In high-level terms, for a single point mass, as the spring constant increases, the more impact neighboring point masses have on its net force.</p>
+  <div align="middle">
+    <table style="width:100%">
+      <tr align="center">
+        <td>
+          <img src="images/part4/ks5000.png" align="middle" width="400px" />
+          <figcaption>ks = 5000 (default)</figcaption>
+        </td>
+        <td>
+          <img src="images/part4/ks100000.png" align="middle" width="400px" />
+          <figcaption>ks = 100000</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+<h2 align="middle">Part V: Shaders</h2>
+
+  <p>A shader program is responsible for creating visual effects such as lighting and material properties on a 3D object or a 2D image. Our shaders are written in GLSL, and they are used to manipulate the appearance of a surface by modifying the way that light interacts with it.</p>
+  <p>In order to create lighting and material effects, vertex and fragment shaders work together. The vertex shader transforms the vertices of the object and passes them to the fragment shader. The fragment shader then uses the transformed vertices, along with information about the lighting and material properties, to calculate the final color of each pixel. This process is repeated for every pixel on the surface of the object, resulting in a final rendered image that includes lighting and material effects.</p>
+  <p>In the Blinn-Phong model, there are three components used to calculate the final shading intensity: the ambient component, diffuse component, and the specular component. The diffuse component is based on the Lambertian reflectance model and calculates the amount of light reflected off a surface in a random direction due to the surface's roughness. The specular component calculates the amount of light reflected in a mirror-like manner off the surface in a specific direction. The ambient term represents the minimum amount of light that is reflected off the surface, regardless of the position and intensity of the light source.</p>
+  <div align="middle">
+    <table style="width:100%">
+      <tr align="center">
+        <td>
+          <img src="images/part5/phong_ambient.png" align="middle" width="400px" />
+          <figcaption>Blinn-Phong (ambient only)</figcaption>
+        </td>
+        <td>
+          <img src="images/part5/phong_diffuse.png" align="middle" width="400px" />
+          <figcaption>Blinn-Phong (diffuse only)</figcaption>
+        </td>
+      </tr>
+      <tr align="center">
+        <td>
+          <img src="images/part5/phong_specular.png" align="middle" width="400px" />
+          <figcaption>Blinn-Phong (specular only)</figcaption>
+        </td>
+        <td>
+          <img src="images/part5/phong.png" align="middle" width="400px" />
+          <figcaption>Blinn-Phong</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <p>Below is a custom texture of an eeveelutions blanket!</p>
+  <div align="middle">
+    <img src="images/part5/eeveelutions.png" align="middle" width="600px" />
+  </div>
+
+  <p>Below shows bump mapping and displacement mapping using the given texture 3.</p>
+  <div align="middle">
+    <table style="width:100%">
+      <tr align="center">
+        <td>
+          <img src="images/part5/bump_initial.png" align="middle" width="400px" />
+          <figcaption>Bump map (initial)</figcaption>
+        </td>
+        <td>
+          <img src="images/part5/bump_final.png" align="middle" width="400px" />
+          <figcaption>Bump map (rest)</figcaption>
+        </td>
+      </tr>
+      <tr align="center">
+        <td>
+          <img src="images/part5/displacement_initial.png" align="middle" width="400px" />
+          <figcaption>Displacement map (initial)</figcaption>
+        </td>
+        <td>
+          <img src="images/part5/displacement_final.png" align="middle" width="400px" />
+          <figcaption>Displacement map (final)</figcaption>
+        </td>
+      </tr>
+    </table>
+  </div>
+  <p>When we tried rendering the spheres at 16x16 and 128x128, it seemed like the displacement mapping suffered more from resolution loss compared to the bump mapping. We reasoned that this happened because the render has to account for higher height fluctuations in displacement mapping which adds more detail to the render.</p>
+
+  <p>Below shows the mirror shader before and after the cloth falls on the sphere.</p>
+  <div align="middle">
+    <table style="width:100%">
+      <tr align="center">
+        <td>
+          <img src="images/part5/mirror_sphere.png" align="middle" width="400px" />
+        </td>
+        <td>
+          <img src="images/part5/mirror_cloth.png" align="middle" width="400px" />
+        </td>
+      </tr>
+    </table>
+  </div>
+
+</body>
 </html>
